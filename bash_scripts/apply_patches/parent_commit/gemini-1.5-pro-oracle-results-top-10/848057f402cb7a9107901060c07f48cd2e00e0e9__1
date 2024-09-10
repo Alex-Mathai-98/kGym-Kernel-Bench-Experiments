@@ -1,0 +1,33 @@
+===MODEL PATCH ===
+
+--- a/drivers/scsi/hosts.c
++++ b/drivers/scsi/hosts.c
+@@ -184,7 +184,10 @@ void scsi_remove_host(struct Scsi_Host *shost)
+ 	scsi_forget_host(shost);
+ 	mutex_unlock(&shost->scan_mutex);
+ 	scsi_proc_host_rm(shost);
+-	scsi_proc_hostdir_rm(shost->hostt);
++	/*
++	 * scsi_proc_hostdir_rm() is called in scsi_host_dev_release()
++	 * so don't call it here.
++	 */
+ 
+ 	/*
+ 	 * New SCSI devices cannot be attached anymore because of the SCSI host
+
+===ORIGINAL PATCH ===
+diff --git a/drivers/scsi/hosts.c b/drivers/scsi/hosts.c
+index f7f62e56afca..9b6fbbe15d92 100644
+--- a/drivers/scsi/hosts.c
++++ b/drivers/scsi/hosts.c
+@@ -341,9 +341,6 @@ static void scsi_host_dev_release(struct device *dev)
+ 	struct Scsi_Host *shost = dev_to_shost(dev);
+ 	struct device *parent = dev->parent;
+ 
+-	/* In case scsi_remove_host() has not been called. */
+-	scsi_proc_hostdir_rm(shost->hostt);
+-
+ 	/* Wait for functions invoked through call_rcu(&scmd->rcu, ...) */
+ 	rcu_barrier();
+ 
+

@@ -1,0 +1,35 @@
+===MODEL PATCH ===
+
+--- a/net/smc/af_smc.c
++++ b/net/smc/af_smc.c
+@@ -1277,6 +1277,12 @@
+ {
+ 	struct sock *sk = sock->sk;
+ 	struct smc_sock *smc;
++
++	if (!optval || optlen < sizeof(int))
++		return -EFAULT;
++
++	if (get_user(optname, (int __user *)optval))
++		return -EFAULT;
+ 
+ 	smc = smc_sk(sk);
+ 
+
+===ORIGINAL PATCH ===
+diff --git a/net/smc/af_smc.c b/net/smc/af_smc.c
+index f5d4b69dbabc..4470501374bf 100644
+--- a/net/smc/af_smc.c
++++ b/net/smc/af_smc.c
+@@ -978,10 +978,6 @@ static void smc_tcp_listen_work(struct work_struct *work)
+ 	}
+ 
+ out:
+-	if (lsmc->clcsock) {
+-		sock_release(lsmc->clcsock);
+-		lsmc->clcsock = NULL;
+-	}
+ 	release_sock(lsk);
+ 	sock_put(&lsmc->sk); /* sock_hold in smc_listen */
+ }
+

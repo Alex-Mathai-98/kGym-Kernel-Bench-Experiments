@@ -1,0 +1,32 @@
+===MODEL PATCH ===
+
+--- a/net/nfc/llcp_sock.c
++++ b/net/nfc/llcp_sock.c
+@@ -776,7 +776,7 @@
+ 	pr_debug("sock %p sk %p", sock, sk);
+ 
+ 	ret = sock_error(sk);
+-	if (ret)
++	if (ret || sk->sk_state != LLCP_CONNECTED)
+ 		return ret;
+ 
+ 	if (msg->msg_flags & MSG_OOB)
+
+===ORIGINAL PATCH ===
+diff --git a/net/nfc/llcp_sock.c b/net/nfc/llcp_sock.c
+index 6cfd30fc0798..0b93a17b9f11 100644
+--- a/net/nfc/llcp_sock.c
++++ b/net/nfc/llcp_sock.c
+@@ -789,6 +789,11 @@ static int llcp_sock_sendmsg(struct socket *sock, struct msghdr *msg,
+ 
+ 	lock_sock(sk);
+ 
++	if (!llcp_sock->local) {
++		release_sock(sk);
++		return -ENODEV;
++	}
++
+ 	if (sk->sk_type == SOCK_DGRAM) {
+ 		DECLARE_SOCKADDR(struct sockaddr_nfc_llcp *, addr,
+ 				 msg->msg_name);
+

@@ -1,0 +1,37 @@
+===MODEL PATCH ===
+--- a/sound/usb/midi.c
++++ b/sound/usb/midi.c
+@@ -1924,7 +1924,7 @@ static int snd_usbmidi_get_ms_info(struct snd_usb_midi *umidi,
+ 		if (ms_ep->bLength > 3 &&
+ 		    ms_ep->bDescriptorType == USB_DT_CS_ENDPOINT &&
+ 		    ms_ep->bDescriptorSubtype == UAC_MS_GENERAL)
+-			return ms_ep;
++			return 0;
+ 		if (!extra[0])
+ 			break;
+ 		extralen -= extra[0];
+
+===ORIGINAL PATCH ===
+diff --git a/sound/usb/midi.c b/sound/usb/midi.c
+index c8213652470c..0c23fa6d8525 100644
+--- a/sound/usb/midi.c
++++ b/sound/usb/midi.c
+@@ -1889,6 +1889,8 @@ static int snd_usbmidi_get_ms_info(struct snd_usb_midi *umidi,
+ 		ms_ep = find_usb_ms_endpoint_descriptor(hostep);
+ 		if (!ms_ep)
+ 			continue;
++		if (ms_ep->bNumEmbMIDIJack > 0x10)
++			continue;
+ 		if (usb_endpoint_dir_out(ep)) {
+ 			if (endpoints[epidx].out_ep) {
+ 				if (++epidx >= MIDI_MAX_ENDPOINTS) {
+@@ -2141,6 +2143,8 @@ static int snd_usbmidi_detect_roland(struct snd_usb_midi *umidi,
+ 		    cs_desc[1] == USB_DT_CS_INTERFACE &&
+ 		    cs_desc[2] == 0xf1 &&
+ 		    cs_desc[3] == 0x02) {
++			if (cs_desc[4] > 0x10 || cs_desc[5] > 0x10)
++				continue;
+ 			endpoint->in_cables  = (1 << cs_desc[4]) - 1;
+ 			endpoint->out_cables = (1 << cs_desc[5]) - 1;
+ 			return snd_usbmidi_detect_endpoints(umidi, endpoint, 1);
+

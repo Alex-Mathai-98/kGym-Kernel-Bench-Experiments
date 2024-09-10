@@ -1,0 +1,39 @@
+===MODEL PATCH ===
+--- a/drivers/media/usb/dvb-usb/cinergyT2-core.c
++++ b/drivers/media/usb/dvb-usb/cinergyT2-core.c
+@@ -87,6 +87,7 @@
+ 	/* Copy this pointer as we are gonna need it in the release phase */
+ 	cinergyt2_usb_device = adap->dev;
+ 
++	kfree(adap->fe_adap[0].fe);
+ 	return ret;
+ }
+ 
+@@ -257,6 +258,11 @@
+ 	.disconnect	= dvb_usb_device_exit,
+ 	.id_table	= cinergyt2_usb_table
+ };
++
++static void cinergyt2_usb_disconnect(struct usb_interface *intf)
++{
++	kfree(cinergyt2_usb_device);
++}
+ 
+ module_usb_driver(cinergyt2_driver);
+ 
+
+===ORIGINAL PATCH ===
+diff --git a/drivers/media/usb/dvb-usb/cinergyT2-core.c b/drivers/media/usb/dvb-usb/cinergyT2-core.c
+index 969a7ec71dff..4116ba5c45fc 100644
+--- a/drivers/media/usb/dvb-usb/cinergyT2-core.c
++++ b/drivers/media/usb/dvb-usb/cinergyT2-core.c
+@@ -78,6 +78,8 @@ static int cinergyt2_frontend_attach(struct dvb_usb_adapter *adap)
+ 
+ 	ret = dvb_usb_generic_rw(d, st->data, 1, st->data, 3, 0);
+ 	if (ret < 0) {
++		if (adap->fe_adap[0].fe)
++			adap->fe_adap[0].fe->ops.release(adap->fe_adap[0].fe);
+ 		deb_rc("cinergyt2_power_ctrl() Failed to retrieve sleep state info\n");
+ 	}
+ 	mutex_unlock(&d->data_mutex);
+

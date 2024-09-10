@@ -1,0 +1,40 @@
+===MODEL PATCH ===
+
+--- a/net/qrtr/qrtr.c
++++ b/net/qrtr/qrtr.c
+@@ -651,6 +651,7 @@ static struct qrtr_sock *qrtr_port_lookup(int port)
+ 	struct qrtr_sock *ipc;
+ 
+ 	if (port == QRTR_PORT_CTRL)
++		return NULL;
+ 		port = 0;
+ 
+ 	rcu_read_lock();
+
+===ORIGINAL PATCH ===
+diff --git a/net/qrtr/qrtr.c b/net/qrtr/qrtr.c
+index e6f4a6202f82..171b7f3be6ef 100644
+--- a/net/qrtr/qrtr.c
++++ b/net/qrtr/qrtr.c
+@@ -518,8 +518,10 @@ int qrtr_endpoint_post(struct qrtr_endpoint *ep, const void *data, size_t len)
+ 		if (!ipc)
+ 			goto err;
+ 
+-		if (sock_queue_rcv_skb(&ipc->sk, skb))
++		if (sock_queue_rcv_skb(&ipc->sk, skb)) {
++			qrtr_port_put(ipc);
+ 			goto err;
++		}
+ 
+ 		qrtr_port_put(ipc);
+ 	}
+@@ -839,6 +841,8 @@ static int qrtr_local_enqueue(struct qrtr_node *node, struct sk_buff *skb,
+ 
+ 	ipc = qrtr_port_lookup(to->sq_port);
+ 	if (!ipc || &ipc->sk == skb->sk) { /* do not send to self */
++		if (ipc)
++			qrtr_port_put(ipc);
+ 		kfree_skb(skb);
+ 		return -ENODEV;
+ 	}
+

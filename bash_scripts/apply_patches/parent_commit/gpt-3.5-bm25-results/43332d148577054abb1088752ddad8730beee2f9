@@ -1,0 +1,35 @@
+===MODEL PATCH ===
+
+--- a/io_uring/io-wq.c
++++ b/io_uring/io-wq.c
+@@ -106,7 +106,7 @@ static void io_wqe_dec_running(struct io_worker *worker)
+ {
+ 	struct io_wqe_acct *acct = io_wqe_get_acct(worker);
+ 	struct io_wqe *wqe = worker->wqe;
+ 
+-	if (!(worker->flags & IO_WORKER_F_UP))
++	if (!(worker->flags & IO_WORKER_F_UP) || !(worker->flags & IO_WORKER_F_RUNNING))
+ 		return;
+ 
+ 	if (!atomic_dec_and_test(&acct->nr_running))
+
+===ORIGINAL PATCH ===
+diff --git a/io_uring/io-wq.c b/io_uring/io-wq.c
+index 992dcd9f8c4c..411bb2d1acd4 100644
+--- a/io_uring/io-wq.c
++++ b/io_uring/io-wq.c
+@@ -1230,7 +1230,12 @@ static void io_wq_cancel_tw_create(struct io_wq *wq)
+ 
+ 		worker = container_of(cb, struct io_worker, create_work);
+ 		io_worker_cancel_cb(worker);
+-		kfree(worker);
++		/*
++		 * Only the worker continuation helper has worker allocated and
++		 * hence needs freeing.
++		 */
++		if (cb->func == create_worker_cont)
++			kfree(worker);
+ 	}
+ }
+ 
+

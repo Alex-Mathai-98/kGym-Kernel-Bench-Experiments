@@ -1,0 +1,30 @@
+===MODEL PATCH ===
+
+--- a/kernel/bpf/log.c
++++ b/kernel/bpf/log.c
+@@ -64,7 +64,7 @@
+ 
+ 	n = vscnprintf(log->kbuf, BPF_VERIFIER_TMP_LOG_SIZE, fmt, args);
+ 
+-	WARN_ONCE(n >= BPF_VERIFIER_TMP_LOG_SIZE - 1,
++	WARN_ONCE(n >= BPF_VERIFIER_TMP_LOG_SIZE,
+ 		  "verifier log line truncated - local buffer too short\n");
+ 
+ 	if (log->level == BPF_LOG_KERNEL) {
+
+===ORIGINAL PATCH ===
+diff --git a/kernel/bpf/log.c b/kernel/bpf/log.c
+index 046ddff37a76..850494423530 100644
+--- a/kernel/bpf/log.c
++++ b/kernel/bpf/log.c
+@@ -62,9 +62,6 @@ void bpf_verifier_vlog(struct bpf_verifier_log *log, const char *fmt,
+ 
+ 	n = vscnprintf(log->kbuf, BPF_VERIFIER_TMP_LOG_SIZE, fmt, args);
+ 
+-	WARN_ONCE(n >= BPF_VERIFIER_TMP_LOG_SIZE - 1,
+-		  "verifier log line truncated - local buffer too short\n");
+-
+ 	if (log->level == BPF_LOG_KERNEL) {
+ 		bool newline = n > 0 && log->kbuf[n - 1] == '\n';
+ 
+

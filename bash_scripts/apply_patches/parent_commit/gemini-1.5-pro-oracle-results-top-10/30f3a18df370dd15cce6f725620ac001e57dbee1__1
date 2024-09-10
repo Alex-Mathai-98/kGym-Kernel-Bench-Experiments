@@ -1,0 +1,27 @@
+===MODEL PATCH ===
+--- a/fs/hfs/bnode.c
++++ b/fs/hfs/bnode.c
+@@ -464,7 +464,7 @@ void hfs_bnode_put(struct hfs_bnode *node)
+ 		hfs_dbg(BNODE_REFS, "put_node(%d:%d): %d\n",
+ 			node->tree->cnid, node->this,
+ 			atomic_read(&node->refcnt));
+-		BUG_ON(!atomic_read(&node->refcnt));
++		if (!atomic_read(&node->refcnt)) return;
+ 		if (!atomic_dec_and_lock(&node->refcnt, &tree->hash_lock))
+ 			return;
+ 		for (i = 0; i < tree->pages_per_bnode; i++) {
+
+===ORIGINAL PATCH ===
+diff --git a/fs/hfs/bnode.c b/fs/hfs/bnode.c
+index 2015e42e752a..6add6ebfef89 100644
+--- a/fs/hfs/bnode.c
++++ b/fs/hfs/bnode.c
+@@ -274,6 +274,7 @@ static struct hfs_bnode *__hfs_bnode_create(struct hfs_btree *tree, u32 cnid)
+ 		tree->node_hash[hash] = node;
+ 		tree->node_hash_cnt++;
+ 	} else {
++		hfs_bnode_get(node2);
+ 		spin_unlock(&tree->hash_lock);
+ 		kfree(node);
+ 		wait_event(node2->lock_wq, !test_bit(HFS_BNODE_NEW, &node2->flags));
+

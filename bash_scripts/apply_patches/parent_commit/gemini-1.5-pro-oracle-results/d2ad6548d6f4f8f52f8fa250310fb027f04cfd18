@@ -1,0 +1,30 @@
+===MODEL PATCH ===
+
+--- a/net/ieee802154/nl802154.c
++++ b/net/ieee802154/nl802154.c
+@@ -1401,6 +1401,9 @@ static int nl802154_trigger_scan(struct sk_buff *skb, struct genl_info *info)
+ 	struct cfg802154_scan_request *request;
+ 	u8 type;
+ 	int err;
++
++	if (!info->attrs[NL802154_ATTR_SCAN_TYPE])
++		return -EINVAL;
+ 
+ 	if (wpan_dev->iftype == NL802154_IFTYPE_MONITOR) {
+ 		NL_SET_ERR_MSG(info->extack, "Monitors are not allowed to perform scans");
+
+===ORIGINAL PATCH ===
+diff --git a/net/ieee802154/nl802154.c b/net/ieee802154/nl802154.c
+index 2215f576ee37..d8f4379d4fa6 100644
+--- a/net/ieee802154/nl802154.c
++++ b/net/ieee802154/nl802154.c
+@@ -1412,7 +1412,7 @@ static int nl802154_trigger_scan(struct sk_buff *skb, struct genl_info *info)
+ 		return -EOPNOTSUPP;
+ 	}
+ 
+-	if (!nla_get_u8(info->attrs[NL802154_ATTR_SCAN_TYPE])) {
++	if (!info->attrs[NL802154_ATTR_SCAN_TYPE]) {
+ 		NL_SET_ERR_MSG(info->extack, "Malformed request, missing scan type");
+ 		return -EINVAL;
+ 	}
+

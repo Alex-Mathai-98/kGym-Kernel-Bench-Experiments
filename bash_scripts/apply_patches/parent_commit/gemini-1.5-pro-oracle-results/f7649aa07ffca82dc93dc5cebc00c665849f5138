@@ -1,0 +1,76 @@
+===MODEL PATCH ===
+
+--- a/security/keys/keyring.c
++++ b/security/keys/keyring.c
+@@ -1213,6 +1213,7 @@ int __key_link_begin(struct key *keyring,
+ 	kenter("%d,%s,%s,",
+ 	       keyring->serial, index_key->type->name, index_key->description);
+ 
++	if (index_key->type == &key_type_keyring)
+ 	BUG_ON(index_key->desc_len == 0);
+ 
+ 	if (keyring->type != &key_type_keyring)
+
+===ORIGINAL PATCH ===
+diff --git a/security/keys/keyring.c b/security/keys/keyring.c
+index eadebb92986a..f81372f53dd7 100644
+--- a/security/keys/keyring.c
++++ b/security/keys/keyring.c
+@@ -661,9 +661,6 @@ static bool search_nested_keyrings(struct key *keyring,
+ 	BUG_ON((ctx->flags & STATE_CHECKS) == 0 ||
+ 	       (ctx->flags & STATE_CHECKS) == STATE_CHECKS);
+ 
+-	if (ctx->index_key.description)
+-		ctx->index_key.desc_len = strlen(ctx->index_key.description);
+-
+ 	/* Check to see if this top-level keyring is what we are looking for
+ 	 * and whether it is valid or not.
+ 	 */
+@@ -914,6 +911,7 @@ key_ref_t keyring_search(key_ref_t keyring,
+ 	struct keyring_search_context ctx = {
+ 		.index_key.type		= type,
+ 		.index_key.description	= description,
++		.index_key.desc_len	= strlen(description),
+ 		.cred			= current_cred(),
+ 		.match_data.cmp		= key_default_cmp,
+ 		.match_data.raw_data	= description,
+diff --git a/security/keys/proc.c b/security/keys/proc.c
+index d2b802072693..78ac305d715e 100644
+--- a/security/keys/proc.c
++++ b/security/keys/proc.c
+@@ -165,8 +165,7 @@ static int proc_keys_show(struct seq_file *m, void *v)
+ 	int rc;
+ 
+ 	struct keyring_search_context ctx = {
+-		.index_key.type		= key->type,
+-		.index_key.description	= key->description,
++		.index_key		= key->index_key,
+ 		.cred			= m->file->f_cred,
+ 		.match_data.cmp		= lookup_user_key_possessed,
+ 		.match_data.raw_data	= key,
+diff --git a/security/keys/request_key.c b/security/keys/request_key.c
+index 3f56a312dd35..7a0c6b666ff0 100644
+--- a/security/keys/request_key.c
++++ b/security/keys/request_key.c
+@@ -531,6 +531,7 @@ struct key *request_key_and_link(struct key_type *type,
+ 	struct keyring_search_context ctx = {
+ 		.index_key.type		= type,
+ 		.index_key.description	= description,
++		.index_key.desc_len	= strlen(description),
+ 		.cred			= current_cred(),
+ 		.match_data.cmp		= key_default_cmp,
+ 		.match_data.raw_data	= description,
+diff --git a/security/keys/request_key_auth.c b/security/keys/request_key_auth.c
+index afc304e8b61e..bda6201c6c45 100644
+--- a/security/keys/request_key_auth.c
++++ b/security/keys/request_key_auth.c
+@@ -247,7 +247,7 @@ struct key *key_get_instantiation_authkey(key_serial_t target_id)
+ 	struct key *authkey;
+ 	key_ref_t authkey_ref;
+ 
+-	sprintf(description, "%x", target_id);
++	ctx.index_key.desc_len = sprintf(description, "%x", target_id);
+ 
+ 	authkey_ref = search_process_keyrings(&ctx);
+ 
+
